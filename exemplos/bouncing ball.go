@@ -5,10 +5,10 @@ import "canvas2d"
 var canvas canvas2d.Canvas
 var context canvas2d.Context
 
-var posy int32 = 50
-var posx int32 = 50
-var updateValueX int32 = 2
-var updateValueY int32 = 2
+var posy float32 = 50
+var posx float32 = 50
+var updateValueX float32 = 1.5
+var updateValueY float32 = 1.5
 
 func main() {
 	canvas = canvas2d.NewCanvas(600, 400, "ball")
@@ -28,11 +28,11 @@ func draw() {
 }
 
 func collision() {
-	if posx < 0 || posx > int32(canvas.Width) {
+	if posx < 0 || posx > float32(canvas.Width) {
 		updateValueX *= -1
 	}
 
-	if posy < 0 || posy > int32(canvas.Height) {
+	if posy < 0 || posy > float32(canvas.Height) {
 		updateValueY *= -1
 	}
 }

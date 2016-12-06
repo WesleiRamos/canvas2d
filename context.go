@@ -28,43 +28,42 @@ func (self Context) Background(cor Color) {
 }
 
 /* Desenha retangulo com preenchimento */
-func (self fill) Rect(x, y, w, h int32) {
+func (self fill) Rect(x, y, w, h float32) {
 	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
 
 	gl.Begin(gl.QUADS)
-	gl.Vertex2i(x, y)
-	gl.Vertex2i(x+w, y)
-	gl.Vertex2i(x+w, y+h)
-	gl.Vertex2i(x, y+h)
+	gl.Vertex2f(x, y)
+	gl.Vertex2f(x+w, y)
+	gl.Vertex2f(x+w, y+h)
+	gl.Vertex2f(x, y+h)
 	gl.End()
 }
 
 /* Desenha retangulo com somente o contorno */
-func (self stroke) Rect(x, y, w, h int32) {
+func (self stroke) Rect(x, y, w, h float32) {
 	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
 
 	gl.Begin(gl.LINE_LOOP)
-	gl.Vertex2i(x, y)
-	gl.Vertex2i(x+w, y)
-	gl.Vertex2i(x+w, y+h)
-	gl.Vertex2i(x, y+h)
+	gl.Vertex2f(x, y)
+	gl.Vertex2f(x+w, y)
+	gl.Vertex2f(x+w, y+h)
+	gl.Vertex2f(x, y+h)
 	gl.End()
 }
 
 /* Desenha linha */
-func (self stroke) Line(x1, y1, x2, y2 int32) {
+func (self stroke) Line(x1, y1, x2, y2 float32) {
 	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
 
 	gl.Begin(gl.LINES)
-	gl.Vertex2i(x1, y1)
-	gl.Vertex2i(x2, y2)
+	gl.Vertex2f(x1, y1)
+	gl.Vertex2f(x2, y2)
 	gl.End()
 }
 
 /* Desenha circulos */
-func (self fill) Arc(_x, _y, _raio int32) {
+func (self fill) Arc(x, y, raio float32) {
 	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
-	x, y, raio := float32(_x), float32(_y), float32(_raio)
 
 	arc := mgl32.Circle(raio, raio, 90)
 
@@ -78,9 +77,8 @@ func (self fill) Arc(_x, _y, _raio int32) {
 	gl.End()
 }
 
-func (self stroke) Arc(_x, _y, _raio int32) {
+func (self stroke) Arc(x, y, raio float32) {
 	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
-	x, y, raio := float32(_x), float32(_y), float32(_raio)
 
 	arc := mgl32.Circle(raio, raio, 90)
 
