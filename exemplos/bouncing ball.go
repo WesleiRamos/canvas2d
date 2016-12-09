@@ -24,7 +24,7 @@ func draw() {
 	context.Background(canvas2d.Color{0.95, 0.95, 0.95})
 
 	context.Fill.Style = canvas2d.Color{1.0, 0, 0}
-	context.Fill.Arc(posx, posy, 20)
+	context.Fill.Circle(posx, posy, 20)
 }
 
 func collision() {

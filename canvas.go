@@ -4,21 +4,30 @@ import "github.com/go-gl/gl/v2.1/gl"
 import "github.com/go-gl/glfw/v3.2/glfw"
 
 type KEY_PRESS func(key int32, mod int32)
+type MOUSE_PRESS func(x, y float32, btn, mod int32)
+type MOUSE_MOVE func(x, y float32)
 
 type Canvas struct {
 	Width, Height int
 	Title         string
 	LoopFunc      func()
 	FullScreen    bool
+	Resizable     bool
 	Window        *glfw.Window
 	KeyDown       KEY_PRESS
 	KeyUp         KEY_PRESS
 	KeyPress      KEY_PRESS
+	MouseDown     MOUSE_PRESS
+	MouseUp       MOUSE_PRESS
+	MouseMove     MOUSE_MOVE
 	KEYS          map[string]bool
 }
 
 func NewCanvas(w, h int, title string) Canvas {
-	return Canvas{Width: w, Height: h, Title: title, KEYS: map[string]bool{}}
+	if w < 0 || h < 0 {
+		panic("Width and Height must be positive")
+	}
+	return Canvas{Width: w, Height: h, Title: title, Resizable: true, KEYS: map[string]bool{}}
 }
 
 /*
@@ -38,6 +47,13 @@ func (self *Canvas) SetFullScreen(full bool) {
 		**Se a tela não for full screen não precisa chamar
 	*/
 	self.FullScreen = full
+}
+
+func (self *Canvas) SetResizable(r bool) {
+	/*
+		Seta se a tela poderá ser redimensionada ou não
+	*/
+	self.Resizable = r
 }
 
 func (self *Canvas) SetWatchKeys(keys string) {
@@ -123,6 +139,21 @@ func (self *Canvas) OnKeyPress(x KEY_PRESS) {
 	self.KeyPress = x
 }
 
+func (self *Canvas) OnMouseDown(x MOUSE_PRESS) {
+	// Define a ação de clicar os botões do mouse
+	self.MouseDown = x
+}
+
+func (self *Canvas) OnMouseUp(x MOUSE_PRESS) {
+	// Define a ação de soltar os botões do mouse
+	self.MouseUp = x
+}
+
+func (self *Canvas) OnMouseMove(x MOUSE_MOVE) {
+	// Define a ação de mover o mouse
+	self.MouseMove = x
+}
+
 /*
 	Outras funções
 */
@@ -142,6 +173,12 @@ func (self *Canvas) Show() {
 		panic(err)
 	}
 
+	glfw.WindowHint(glfw.Samples, 4)
+
+	if !self.Resizable {
+		glfw.WindowHint(glfw.Resizable, glfw.False)
+	}
+
 	/* Deixa em modo FullScreen */
 	if self.FullScreen {
 		self.setFullScreenMode()
@@ -153,7 +190,7 @@ func (self *Canvas) Show() {
 		panic(err)
 	}
 
-	window.MakeContextCurrent() // NSPQS
+	window.MakeContextCurrent()
 
 	/* Inicializa o OpenGL */
 	if err := gl.Init(); err != nil {
@@ -183,6 +220,28 @@ func (self *Canvas) Show() {
 			self.KeyPress(int32(key), int32(mods))
 		}
 	})
+
+	// Quando algum botão do mouse for pressionado
+	self.Window.SetMouseButtonCallback(func(w *glfw.Window, btn glfw.MouseButton, atc glfw.Action, mod glfw.ModifierKey) {
+		posx, posy := w.GetCursorPos()
+
+		if atc == glfw.Press && self.MouseDown != nil {
+			// Quando o botão do mouse for pressionado
+			self.MouseDown(float32(posx), float32(posy), int32(btn), int32(mod))
+
+		} else if atc == glfw.Release && self.MouseUp != nil {
+			// Quando o botão do mouse for solto
+			self.MouseUp(float32(posx), float32(posy), int32(btn), int32(mod))
+		}
+	})
+
+	// Pega a posição x e y do mouse quando for movimentado
+	self.Window.SetCursorPosCallback(func(w *glfw.Window, x, y float64) {
+		if self.MouseMove != nil {
+			self.MouseMove(float32(x), float32(y))
+		}
+	})
+
 	/*****************/
 
 	if self.LoopFunc != nil {
@@ -195,8 +254,8 @@ func (self *Canvas) Show() {
 
 			gl.Flush()
 
-			self.Window.SwapBuffers() // NSPQS
-			glfw.PollEvents()         // NSPQS
+			self.Window.SwapBuffers()
+			glfw.PollEvents()
 		}
 
 	}
@@ -214,6 +273,8 @@ func (self Canvas) set2d() {
 	gl.Ortho(0, float64(self.Width), 0, float64(self.Height), -1, 1)
 	gl.Scalef(1, -1, 1)
 	gl.Translatef(0, -float32(self.Height), 0)
+	gl.MatrixMode(gl.MODELVIEW)
+	gl.LoadIdentity()
 }
 
 func (self *Canvas) sizeCallback(_window *glfw.Window, w int, h int) {
