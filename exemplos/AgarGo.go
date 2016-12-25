@@ -21,11 +21,13 @@ type AgarGo struct {
 
 func main() {
 	game := AgarGo{cells: []Cell{}}
-	game.canvas = canvas2d.NewCanvas(900, 400, "AgarGo")
+	game.canvas = canvas2d.NewCanvas(600, 400, "AgarGo")
 	game.context = game.canvas.GetContext()
 
-	game.canvas.SetFullScreen(true)
+	//game.canvas.SetFullScreen(true)
+	game.canvas.SetResizable(false)
 	game.canvas.SetLoopFunc(game.loop)
+	game.canvas.SetLoadResources(game.init)
 
 	game.canvas.OnKeyDown(game.keyDown)
 	game.canvas.OnMouseDown(game.mouseDown)
@@ -34,6 +36,7 @@ func main() {
 }
 
 func (self *AgarGo) init() {
+	self.context.Background(canvas2d.Color{1.0, 1.0, 1.0})
 
 	celln := 100
 
@@ -51,12 +54,8 @@ func (self *AgarGo) init() {
 	self.myRadius = 16
 	self.addVel = 1.5
 }
-func (self *AgarGo) loop() {
-	if !self.gameInitialized {
-		self.init()
-		self.gameInitialized = true
-	}
 
+func (self *AgarGo) loop() {
 	self.updatePos()
 	self.detectCollision()
 	self.draw()
@@ -86,8 +85,6 @@ func (self *AgarGo) keyDown(key, mod int32) {
 }
 
 func (self *AgarGo) draw() {
-	self.context.Background(canvas2d.Color{1.0, 1.0, 1.0})
-
 	//lines (grid)
 	self.context.Stroke.Style = canvas2d.Color{0.8, 0.8, 0.8}
 
