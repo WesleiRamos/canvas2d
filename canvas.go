@@ -21,6 +21,7 @@ type Canvas struct {
 	resizable     bool
 	removeLoop    bool
 	loadResources func()
+	swapInterval  int
 	icon          []image.Image
 	Window        *glfw.Window
 	keyDown       KEY_PRESS
@@ -96,6 +97,10 @@ func (self *Canvas) SetWatchKeyBool(k string, b bool) {
 	} else {
 		panic("(canvas).SetWatchKeyBool(char string), string of len 1")
 	}
+}
+
+func (self *Canvas) SetSwapInterval(i int) {
+	self.swapInterval = i
 }
 
 func (self *Canvas) SetIcon(iconpath string) {
@@ -215,6 +220,10 @@ func (self *Canvas) Show() {
 	}
 
 	window.MakeContextCurrent()
+
+	if self.swapInterval > 0 {
+		glfw.SwapInterval(self.swapInterval)
+	}
 
 	/* Inicializa o OpenGL */
 	if err := gl.Init(); err != nil {

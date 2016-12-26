@@ -1,6 +1,6 @@
 package main
 
-import "canvas2d"
+import "github.com/WesleiRamos/canvas2d"
 
 var canvas canvas2d.Canvas
 var context canvas2d.Context

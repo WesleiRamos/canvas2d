@@ -1,6 +1,6 @@
 package main
 
-import "canvas2d"
+import "github.com/WesleiRamos/canvas2d"
 import "math"
 
 type Cell struct {

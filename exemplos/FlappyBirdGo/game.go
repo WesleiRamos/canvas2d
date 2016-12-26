@@ -1,11 +1,11 @@
 package main
 
 import "fmt"
-import "canvas2d"
+import "github.com/WesleiRamos/canvas2d"
 
 type Obstaculo struct {
-	x, y, cy, by, ch, bh float32
-	contouponto          bool
+	x, y, cy, by, bh float32
+	contouponto      bool
 }
 
 type FlappyBirdGo struct {
@@ -41,6 +41,15 @@ func (self *FlappyBirdGo) init() {
 	self.context.Fill.Font = self.fonte
 
 	self.imagens = map[string]canvas2d.Image{}
+	self.CarregarImagens()
+
+	self.ResetaPropriedades()
+}
+
+func (self *FlappyBirdGo) ResetaPropriedades() {
+	/*
+		Reseta propriedades
+	*/
 	self.obstaculos = []Obstaculo{}
 
 	self.myposX = 40
@@ -48,12 +57,15 @@ func (self *FlappyBirdGo) init() {
 	self.obsinterval = 500
 	self.pulotempo = 100
 
+	self.rotacao = 0
+	self.pontos = 0
+
 	self.chao1 = 0
 	self.chao2 = 1024
 
-	self.passaroAtual = "passaro1"
+	self.gameOver = false
 
-	self.CarregarImagens()
+	self.passaroAtual = "passaro1"
 }
 
 func (self *FlappyBirdGo) CarregarImagens() {
@@ -132,8 +144,8 @@ func (self *FlappyBirdGo) GerarObstaculos() {
 		py := float32(canvas2d.Random(0, int(sw)))
 
 		// Evita que os canos fiquem pra cima ou pra baixo da tela
-		if py < 40 {
-			py = 40
+		if py < 60 {
+			py = 60
 		} else if py > (sw - 210) {
 			py = sw - 210
 		}
@@ -141,18 +153,13 @@ func (self *FlappyBirdGo) GerarObstaculos() {
 		cy := py - 301
 		by := py + 150
 
-		var ch float32 = 301
 		var bh float32 = 301
 
 		if by < float32(self.canvas.Height)-301 {
 			bh = float32(self.canvas.Height) - by
 		}
-		if py > 301 {
-			ch = float32(self.canvas.Height) - py
-			println(int32(py))
-		}
 
-		self.obstaculos = append(self.obstaculos, Obstaculo{x: float32(self.canvas.Width) + 20, y: float32(py), cy: cy, by: by, ch: ch, bh: bh})
+		self.obstaculos = append(self.obstaculos, Obstaculo{x: float32(self.canvas.Width) + 20, y: float32(py), cy: cy, by: by, bh: bh})
 		self.obscount = 0
 	} else {
 		self.obscount++
@@ -188,7 +195,7 @@ func (self *FlappyBirdGo) DrawObjects() {
 		Desenha os elementos do jogo
 		Cenário
 		Canos
-		Passro
+		Passaro
 		Chão
 	*/
 	self.context.DrawImage(self.imagens["fundo"], 0, 0, float32(self.canvas.Width), float32(self.canvas.Height))
@@ -196,7 +203,7 @@ func (self *FlappyBirdGo) DrawObjects() {
 	for o := range self.obstaculos {
 		obs := self.obstaculos[o]
 
-		self.context.DrawImage(self.imagens["canocima"], obs.x, obs.cy, 70, obs.ch)
+		self.context.DrawImage(self.imagens["canocima"], obs.x, obs.cy, 70, 301)
 		self.context.DrawImage(self.imagens["canobaixo"], obs.x, obs.by, 70, obs.bh)
 	}
 
@@ -213,6 +220,7 @@ func (self *FlappyBirdGo) DrawObjects() {
 
 	if self.gameOver {
 		self.context.DrawImage(self.imagens["gameover"], float32(self.canvas.Width)/2-173, float32(self.canvas.Height/2)-38)
+		self.context.DrawImage(self.imagens["play"], float32(self.canvas.Width)/2-50, float32(self.canvas.Height/2)+45, 100, 50)
 	}
 }
 
@@ -231,8 +239,12 @@ func (self *FlappyBirdGo) DrawPontos() {
 	/*
 		Mostra os pontos
 	*/
+	p := float32(self.canvas.Width) / 2
+	self.context.Fill.Style = canvas2d.Color{0, 0, 0}
+	self.context.Fill.Text(fmt.Sprintf("%d", self.pontos), p-2, 18)
+
 	self.context.Fill.Style = canvas2d.Color{1, 1, 1}
-	self.context.Fill.Text(fmt.Sprintf("%d", self.pontos), float32(self.canvas.Width)/2, 20)
+	self.context.Fill.Text(fmt.Sprintf("%d", self.pontos), p, 20)
 }
 
 func (self *FlappyBirdGo) ChecaGameOver() {
