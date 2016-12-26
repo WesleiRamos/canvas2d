@@ -1,6 +1,8 @@
 # canvas2d
 Lib to create 2d games with Go
 
+To install use: go get -u github.com/WesleiRamos/canvas2d
+
 Require:<br>
   gl https://github.com/go-gl/gl<br>
   glfw https://github.com/go-gl/glfw<br>
