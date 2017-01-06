@@ -36,17 +36,17 @@ func main() {
 }
 
 func (self *AgarGo) init() {
-	self.context.Background(canvas2d.Color{1.0, 1.0, 1.0})
+	self.context.Background(canvas2d.NewColor(255, 255, 255))
 
 	celln := 100
 
 	for i := 0; i < celln; i++ {
 		x := canvas2d.Random(0, self.canvas.Width)
 		y := canvas2d.Random(0, self.canvas.Height)
-		r := float32(canvas2d.Random(0, 100)) / 100
-		g := float32(canvas2d.Random(0, 100)) / 100
-		b := float32(canvas2d.Random(0, 100)) / 100
-		self.cells = append(self.cells, Cell{float32(x), float32(y), 10, 1, canvas2d.Color{r, g, b}})
+		r := float32(canvas2d.Random(0, 255))
+		g := float32(canvas2d.Random(0, 255))
+		b := float32(canvas2d.Random(0, 255))
+		self.cells = append(self.cells, Cell{float32(x), float32(y), 10, 1, canvas2d.NewColor(r, g, b, 1)})
 	}
 
 	self.myPosX = float32(self.canvas.Width / 2)
@@ -86,7 +86,7 @@ func (self *AgarGo) keyDown(key, mod int32) {
 
 func (self *AgarGo) draw() {
 	//lines (grid)
-	self.context.Stroke.Style = canvas2d.Color{0.8, 0.8, 0.8}
+	self.context.Stroke.Style = canvas2d.NewColor(190, 190, 190)
 
 	xm := self.canvas.Width / 14
 	ym := self.canvas.Height / 7
@@ -121,7 +121,7 @@ func (self *AgarGo) draw() {
 		}
 	}
 
-	self.context.Fill.Style = canvas2d.Color{0.2, 0.2, 0.2}
+	self.context.Fill.Style = canvas2d.NewColor(65, 65, 65)
 	self.context.Fill.Circle(self.myPosX, self.myPosY, self.myRadius)
 }
 

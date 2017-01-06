@@ -5,19 +5,15 @@ import "github.com/go-gl/gl/v2.1/gl"
 
 const twoPi float64 = 2.0 * math.Pi
 
-type Color struct {
-	R, G, B float32
-}
-
 /* Desenha e preenche */
 type fill struct {
-	Style Color
-	Font  Font
+	Style *Color
+	Font  *Font
 }
 
 /* Desenha somente o contorno */
 type stroke struct {
-	Style Color
+	Style *Color
 }
 
 type Context struct {
@@ -26,68 +22,90 @@ type Context struct {
 }
 
 /* Cor de fundo */
-func (self Context) Background(cor Color) {
+func (self Context) Background(cor *Color) {
 	gl.ClearColor(cor.R, cor.G, cor.B, 1.0)
 }
 
-/*
-	Move para
-*/
 func (self Context) Translate(x, y float32) {
+	/*
+		Move para
+	*/
 	gl.Translatef(x, y, 0)
 }
 
-/*
-	Restaura
-*/
 func (self Context) Rotate(angle float32) {
+	/*
+		Restaura
+	*/
 	gl.Rotatef(angle, 0, 0, 1)
 }
 
-/*
-	Restaura a matrix
-*/
 func (self Context) Restore() {
+	/*
+		Restaura a matrix
+	*/
 	gl.LoadIdentity()
 }
 
 /* Desenha retangulo com preenchimento */
 func (self fill) Rect(x, y, w, h float32) {
-	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
+	gl.Color4f(self.Style.R, self.Style.G, self.Style.B, self.Style.A)
 
 	gl.Begin(gl.QUADS)
-	gl.Vertex2f(x, y)
-	gl.Vertex2f(x+w, y)
-	gl.Vertex2f(x+w, y+h)
-	gl.Vertex2f(x, y+h)
+	{
+		gl.Vertex2f(x, y)
+		gl.Vertex2f(x+w, y)
+		gl.Vertex2f(x+w, y+h)
+		gl.Vertex2f(x, y+h)
+	}
 	gl.End()
 }
 
 /* Desenha retangulo com somente o contorno */
 func (self stroke) Rect(x, y, w, h float32) {
-	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
+	gl.Color4f(self.Style.R, self.Style.G, self.Style.B, self.Style.A)
 
 	gl.Begin(gl.LINE_LOOP)
-	gl.Vertex2f(x, y)
-	gl.Vertex2f(x+w, y)
-	gl.Vertex2f(x+w, y+h)
-	gl.Vertex2f(x, y+h)
+	{
+		gl.Vertex2f(x, y)
+		gl.Vertex2f(x+w, y)
+		gl.Vertex2f(x+w, y+h)
+		gl.Vertex2f(x, y+h)
+	}
 	gl.End()
 }
 
 /* Desenha linha */
 func (self stroke) Line(x1, y1, x2, y2 float32) {
-	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
+	gl.Color4f(self.Style.R, self.Style.G, self.Style.B, self.Style.A)
 
 	gl.Begin(gl.LINES)
-	gl.Vertex2f(x1, y1)
-	gl.Vertex2f(x2, y2)
+	{
+		gl.Vertex2f(x1, y1)
+		gl.Vertex2f(x2, y2)
+	}
+	gl.End()
+}
+
+// Lines
+func (self stroke) Lines(p *[][]float32) {
+	gl.Color4f(self.Style.R, self.Style.G, self.Style.B, self.Style.A)
+
+	jb := *p
+
+	gl.Begin(gl.LINE_LOOP)
+	{
+		for i := range jb {
+			b := jb[i]
+			gl.Vertex2f(b[0], b[1])
+		}
+	}
 	gl.End()
 }
 
 /* Desenha circulo preenchido */
 func (self fill) Circle(x, y, raio float32) {
-	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
+	gl.Color4f(self.Style.R, self.Style.G, self.Style.B, self.Style.A)
 
 	triangles := float64(int(raio))
 
@@ -101,19 +119,21 @@ func (self fill) Circle(x, y, raio float32) {
 	twopi := twoPi / triangles
 
 	gl.Begin(gl.TRIANGLE_FAN)
-	gl.Vertex2f(x, y)
+	{
+		gl.Vertex2f(x, y)
 
-	for ; i <= triangles; i++ {
-		_x := raio * float32(math.Cos(i*twopi))
-		_y := raio * float32(math.Sin(i*twopi))
-		gl.Vertex2f(x+_x, y+_y)
+		for ; i <= triangles; i++ {
+			_x := raio * float32(math.Cos(i*twopi))
+			_y := raio * float32(math.Sin(i*twopi))
+			gl.Vertex2f(x+_x, y+_y)
+		}
 	}
 	gl.End()
 }
 
 /* Desenha circulo com somente o contorno */
 func (self stroke) Circle(x, y, raio float32) {
-	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
+	gl.Color4f(self.Style.R, self.Style.G, self.Style.B, self.Style.A)
 
 	points := float64(int(raio))
 
@@ -127,23 +147,40 @@ func (self stroke) Circle(x, y, raio float32) {
 	twopi := twoPi / points
 
 	gl.Begin(gl.LINE_LOOP)
+	{
+		for ; i <= points; i++ {
+			_x := raio * float32(math.Cos(i*twopi))
+			_y := raio * float32(math.Sin(i*twopi))
+			gl.Vertex2f(x+_x, y+_y)
+		}
+	}
+	gl.End()
+}
 
-	for ; i <= points; i++ {
-		_x := raio * float32(math.Cos(i*twopi))
-		_y := raio * float32(math.Sin(i*twopi))
-		gl.Vertex2f(x+_x, y+_y)
+// Poligono
+func (self fill) Polygon(x, y float32, v *[][]float32) {
+	gl.Color4f(self.Style.R, self.Style.G, self.Style.B, self.Style.A)
+
+	vertices := *v
+
+	gl.Begin(gl.POLYGON)
+	{
+		for i := range vertices {
+			b := vertices[i]
+			gl.Vertex2f(x+b[0], y+b[1])
+		}
 	}
 	gl.End()
 }
 
 /* Escreve texto */
 func (self fill) Text(text string, x, y float32) {
-	gl.Color3f(self.Style.R, self.Style.G, self.Style.B)
+	gl.Color4f(self.Style.R, self.Style.G, self.Style.B, self.Style.A)
 	self.Font.font.Printf(x, y, text)
 }
 
 /* Desenha a imagem (na verdade é uma textura) */
-func (self *Context) DrawImage(imagem Image, p ...float32) {
+func (self *Context) DrawImage(imagem *Image, p ...float32) {
 	if len(p) == 2 || len(p) == 4 {
 
 		gl.Color3f(1.0, 1.0, 1.0)
@@ -157,14 +194,16 @@ func (self *Context) DrawImage(imagem Image, p ...float32) {
 		}
 
 		gl.Begin(gl.QUADS)
-		gl.TexCoord2i(0, 0)
-		gl.Vertex2f(x, y)
-		gl.TexCoord2i(1, 0)
-		gl.Vertex2f(x+w, y)
-		gl.TexCoord2i(1, 1)
-		gl.Vertex2f(x+w, y+h)
-		gl.TexCoord2i(0, 1)
-		gl.Vertex2f(x, y+h)
+		{
+			gl.TexCoord2i(0, 0)
+			gl.Vertex2f(x, y)
+			gl.TexCoord2i(1, 0)
+			gl.Vertex2f(x+w, y)
+			gl.TexCoord2i(1, 1)
+			gl.Vertex2f(x+w, y+h)
+			gl.TexCoord2i(0, 1)
+			gl.Vertex2f(x, y+h)
+		}
 		gl.End()
 
 	} else {
@@ -177,8 +216,8 @@ func DestroyImage(image Image) {
 	gl.DeleteTextures(1, &n)
 }
 
-func LoadImage(file string) Image {
-	image, rgba := loadImage(file)
+func LoadImage(file string) *Image {
+	image := loadImage(file)
 
 	var imgNum uint32
 
@@ -187,16 +226,7 @@ func LoadImage(file string) Image {
 	gl.BindTexture(gl.TEXTURE_2D, imgNum)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	gl.TexImage2D(
-		gl.TEXTURE_2D,
-		0,
-		gl.RGBA,
-		image.width,
-		image.height,
-		0,
-		gl.RGBA,
-		gl.UNSIGNED_BYTE,
-		gl.Ptr(rgba.Pix))
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, image.width, image.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(image.data.Pix))
 
 	image.SetImgNumber(imgNum)
 

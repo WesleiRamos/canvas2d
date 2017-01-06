@@ -3,7 +3,7 @@ package main
 import "github.com/WesleiRamos/canvas2d"
 
 var context canvas2d.Context
-var font canvas2d.Font
+var font *canvas2d.Font
 
 func main() {
 	canvas := canvas2d.NewCanvas(600, 400, "LOREM IP... IP... IPSUM")
@@ -16,10 +16,10 @@ func main() {
 }
 
 func loadResources() {
-	context.Background(canvas2d.Color{1, 1, 1})
-	font = canvas2d.LoadFont("04b_19.ttf", 50)
+	context.Background(canvas2d.NewColor(255, 255, 255))
+	font = canvas2d.LoadFont("../res/04b_19.ttf", 30)
 	context.Fill.Font = font
-	context.Fill.Style = canvas2d.Color{0, 0, 0}
+	context.Fill.Style = canvas2d.NewColor(0, 0, 0)
 }
 
 func Loop() {

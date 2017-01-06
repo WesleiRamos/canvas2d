@@ -10,6 +10,7 @@ func main() {
 	FlappyGame.canvas = canvas2d.NewCanvas(400, 500, "FlappyBirdGo")
 	FlappyGame.context = FlappyGame.canvas.GetContext()
 
+	FlappyGame.canvas.SetSwapInterval(1)
 	FlappyGame.canvas.SetResizable(false)
 	FlappyGame.canvas.SetIcon("./data/icone.png")
 	FlappyGame.canvas.SetLoadResources(FlappyGame.init)

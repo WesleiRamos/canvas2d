@@ -7,13 +7,14 @@ var context canvas2d.Context
 
 var posy float32 = 50
 var posx float32 = 50
-var updateValueX float32 = 1.5
-var updateValueY float32 = 1.5
+var updateValueX float32 = 5
+var updateValueY float32 = 5
 
 func main() {
 	canvas = canvas2d.NewCanvas(600, 400, "ball")
 	context = canvas.GetContext()
 
+	canvas.SetSwapInterval(1)
 	canvas.SetFullScreen(true)
 	canvas.SetLoopFunc(loop)
 
@@ -21,9 +22,9 @@ func main() {
 }
 
 func draw() {
-	context.Background(canvas2d.Color{0.95, 0.95, 0.95})
+	context.Background(canvas2d.NewColor(245, 245, 245))
 
-	context.Fill.Style = canvas2d.Color{1.0, 0, 0}
+	context.Fill.Style = canvas2d.NewColor(0, 0, 255)
 	context.Fill.Circle(posx, posy, 20)
 }
 

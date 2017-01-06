@@ -11,10 +11,12 @@ type Obstaculo struct {
 type FlappyBirdGo struct {
 	canvas  canvas2d.Canvas
 	context canvas2d.Context
+	clock   canvas2d.Clock
 
 	pontos         int32
-	imagens        map[string]canvas2d.Image
-	fonte          canvas2d.Font
+	imagens        map[string]*canvas2d.Image
+	fonte          *canvas2d.Font
+	fontemenor     *canvas2d.Font
 	obstaculos     []Obstaculo
 	myposX, myposY float32
 	pulando        bool
@@ -26,6 +28,7 @@ type FlappyBirdGo struct {
 	passaroAtual string
 	countAnim    int32
 	rotacao      float32
+	caindo       bool
 
 	gameOver  bool
 	gameStart bool
@@ -37,10 +40,12 @@ func (self *FlappyBirdGo) init() {
 	/*
 		Inicializa as propriedades do jogo
 	*/
-	self.fonte = canvas2d.LoadFont("./data/04b_19.ttf", 40)
-	self.context.Fill.Font = self.fonte
+	self.clock = canvas2d.NewClock()
 
-	self.imagens = map[string]canvas2d.Image{}
+	self.fonte = canvas2d.LoadFont("./data/04b_19.ttf", 40)
+	self.fontemenor = canvas2d.LoadFont("./data/04b_19.ttf", 15)
+
+	self.imagens = map[string]*canvas2d.Image{}
 	self.CarregarImagens()
 
 	self.ResetaPropriedades()
@@ -54,8 +59,8 @@ func (self *FlappyBirdGo) ResetaPropriedades() {
 
 	self.myposX = 40
 	self.myposY = 100
-	self.obsinterval = 500
-	self.pulotempo = 100
+	self.obsinterval = 100
+	self.pulotempo = 20
 
 	self.rotacao = 0
 	self.pontos = 0
@@ -82,28 +87,32 @@ func (self *FlappyBirdGo) CarregarImagens() {
 }
 
 func (self *FlappyBirdGo) MoveChao() {
-	self.chao1 -= 0.5
-	self.chao2 -= 0.5
+	delta := float32(self.clock.DeltaTime()) * 15
 
-	if self.chao2 == 0 {
-		self.chao1 = 1024
-	} else if self.chao1 == 0 {
-		self.chao2 = 1024
+	self.chao1 -= 10 * delta
+	self.chao2 -= 10 * delta
+
+	if self.chao1 <= -1050 {
+		self.chao1 = 1024 + self.chao2
+
+	} else if self.chao2 <= -1050 {
+		self.chao2 = 1024 + self.chao1
 	}
 }
 
 func (self *FlappyBirdGo) Gravidade() {
+	delta := float32(self.clock.DeltaTime()) * 10
 	/*
 		Adiciona a gravidade (ta uma bosta precisa da animação)
 	*/
 	if self.pulando {
 
 		if self.myposY > -40 {
-			self.myposY -= 0.7
+			self.myposY -= 15 * delta
 		}
 
 		if self.rotacao > -20 {
-			self.rotacao -= 2
+			self.rotacao -= 8
 		}
 
 		self.pulocount++
@@ -113,16 +122,16 @@ func (self *FlappyBirdGo) Gravidade() {
 		}
 
 	} else {
-		self.myposY++
+		self.myposY += 25 * delta
 
-		if self.rotacao < 70 {
-			if self.rotacao < 30 {
-				self.rotacao += 0.6
-			} else {
-				self.rotacao += 0.9
+		if self.rotacao < 80 {
+			self.rotacao += 5
+			if self.rotacao < 80 {
+				self.caindo = true
+				self.passaroAtual = "passaro1"
 			}
 		} else {
-			self.myposY += 0.3
+			self.myposY += 5 * delta
 		}
 
 		if self.myposY+30 >= float32(self.canvas.Height)-70 {
@@ -172,7 +181,7 @@ func (self *FlappyBirdGo) UpdatePosObstaculos() {
 	*/
 	obsRemove := []int{}
 	for obs := range self.obstaculos {
-		self.obstaculos[obs].x -= 0.5
+		self.obstaculos[obs].x -= 10 * (float32(self.clock.DeltaTime()) * 15)
 
 		if (self.obstaculos[obs].x + 75) < 0 {
 			// Se passou da tela adiciona à lista de remoção
@@ -239,12 +248,20 @@ func (self *FlappyBirdGo) DrawPontos() {
 	/*
 		Mostra os pontos
 	*/
-	p := float32(self.canvas.Width) / 2
-	self.context.Fill.Style = canvas2d.Color{0, 0, 0}
-	self.context.Fill.Text(fmt.Sprintf("%d", self.pontos), p-2, 18)
+	self.context.Fill.Font = self.fonte
 
-	self.context.Fill.Style = canvas2d.Color{1, 1, 1}
-	self.context.Fill.Text(fmt.Sprintf("%d", self.pontos), p, 20)
+	p := float32(self.canvas.Width) / 2
+	c := fmt.Sprintf("%d", self.pontos)
+	d := p - (10 * float32(len(c)))
+
+	self.context.Fill.Style = canvas2d.NewColor(0, 0, 0)
+	self.context.Fill.Text(c, d-2, 18)
+
+	self.context.Fill.Style = canvas2d.NewColor(255, 255, 255)
+	self.context.Fill.Text(c, d, 20)
+
+	self.context.Fill.Font = self.fontemenor
+	self.context.Fill.Text(fmt.Sprintf("FPS: %d", self.clock.FPS()), 20, 10)
 }
 
 func (self *FlappyBirdGo) ChecaGameOver() {
@@ -270,32 +287,38 @@ func (self *FlappyBirdGo) Animacao() {
 	/*
 		Animação
 	*/
-	if self.countAnim == 50 {
-		self.passaroAtual = "passaro2"
-	} else if self.countAnim == 100 {
-		self.passaroAtual = "passaro1"
-	} else if self.countAnim == 150 {
-		self.passaroAtual = "passaro3"
-	} else if self.countAnim == 200 {
-		self.passaroAtual = "passaro1"
-		self.countAnim = 0
+	if !self.caindo {
+		if self.countAnim == 5 {
+			self.passaroAtual = "passaro2"
+		} else if self.countAnim == 10 {
+			self.passaroAtual = "passaro1"
+		} else if self.countAnim == 15 {
+			self.passaroAtual = "passaro3"
+		} else if self.countAnim == 20 {
+			self.passaroAtual = "passaro1"
+			self.countAnim = 0
+		}
+		self.countAnim++
 	}
-	self.countAnim++
 }
 
 func (self *FlappyBirdGo) Loop() {
 	/*
 		Loop do jogo
 	*/
+	self.clock.Tick()
+
 	if self.gameStart {
 		if !self.gameOver {
 			self.ChecaGameOver()
 			self.GerarObstaculos()
 			self.UpdatePosObstaculos()
-			self.MoveChao()
 			self.Animacao()
 		}
 		self.Gravidade()
+	}
+	if !self.gameOver {
+		self.MoveChao()
 	}
 	self.DrawObjects()
 }
@@ -305,7 +328,9 @@ func (self *FlappyBirdGo) SetPulando() {
 		reseta o pulo
 	*/
 	if !self.gameOver {
+		self.myposY -= 1
 		self.pulocount = 0
 		self.pulando = true
+		self.caindo = false
 	}
 }

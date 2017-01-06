@@ -8,6 +8,7 @@ import "github.com/go-gl/glfw/v3.2/glfw"
 type KEY_PRESS func(key int32, mod int32)
 type MOUSE_PRESS func(x, y float32, btn, mod int32)
 type MOUSE_MOVE func(x, y float32)
+type WINDOW_RESIZE func(w, h int)
 
 func init() {
 	runtime.LockOSThread()
@@ -19,25 +20,28 @@ type Canvas struct {
 	loopFunc      func()
 	fullScreen    bool
 	resizable     bool
-	removeLoop    bool
 	loadResources func()
 	swapInterval  int
-	icon          []image.Image
-	Window        *glfw.Window
-	keyDown       KEY_PRESS
-	keyUp         KEY_PRESS
-	keyPress      KEY_PRESS
-	mouseDown     MOUSE_PRESS
-	mouseUp       MOUSE_PRESS
-	mouseMove     MOUSE_MOVE
-	keys          map[string]bool
+	cursor        bool
+
+	icon         []image.Image
+	glfwInit     bool
+	glInit       bool
+	Window       *glfw.Window
+	windowResize WINDOW_RESIZE
+	keyDown      KEY_PRESS
+	keyUp        KEY_PRESS
+	keyPress     KEY_PRESS
+	mouseDown    MOUSE_PRESS
+	mouseUp      MOUSE_PRESS
+	mouseMove    MOUSE_MOVE
 }
 
 func NewCanvas(w, h int, title string) Canvas {
 	if w < 0 || h < 0 {
 		panic("Width and Height need be positive")
 	}
-	return Canvas{Width: w, Height: h, title: title, resizable: true, keys: map[string]bool{}}
+	return Canvas{Width: w, Height: h, title: title, resizable: true}
 }
 
 /*
@@ -66,37 +70,11 @@ func (self *Canvas) SetFullScreen(full bool) {
 	self.fullScreen = full
 }
 
-func (self *Canvas) SetResizable(r bool) {
+func (self *Canvas) SetResizable(b bool) {
 	/*
 		Seta se a tela poderá ser redimensionada ou não
 	*/
-	self.resizable = r
-}
-
-func (self *Canvas) SetWatchKeys(keys string) {
-	/*
-		Cria chaves para as teclas
-
-		exemplo:
-			(camvas).SetWatchKeys("WASD")
-	*/
-	for key := range keys {
-		self.keys[string(key)] = false
-	}
-}
-
-func (self *Canvas) SetWatchKeyBool(k string, b bool) {
-	/*
-		Muda o valor das chaves teclas
-
-		exemplo:
-			(canvas).SetWatchKeyBool("A", true)
-	*/
-	if len(k) == 1 {
-		self.keys[k] = b
-	} else {
-		panic("(canvas).SetWatchKeyBool(char string), string of len 1")
-	}
+	self.resizable = b
 }
 
 func (self *Canvas) SetSwapInterval(i int) {
@@ -113,36 +91,6 @@ func (self *Canvas) SetIcon(iconpath string) {
 
 func (self Canvas) GetContext() Context {
 	return Context{fill{}, stroke{}}
-}
-
-func (self Canvas) GetKeyFromChar(char string) int32 {
-	/*
-		Retorna o numero da tecla correspondente ao caractere
-	*/
-	if len(char) == 1 {
-		return int32([]rune(char)[0])
-	}
-	panic("(canvas).GetKeyFromChar(char string), string of len 1")
-}
-
-func (self Canvas) GetStringFromKeyCode(key int32) string {
-	/*
-		Retorna o caractere correspondente ao numero da tecla
-	*/
-	return string(key)
-}
-
-func (self *Canvas) GetWatchKey(key string) bool {
-	/*
-		Retorna o estado da tecla assistida
-
-		exemplo:
-			(canvas).GetWatchKey("A")
-	*/
-	if len(key) == 1 {
-		return self.keys[key]
-	}
-	panic("(canvas).GetKeyWatch(key string), string of len 1")
 }
 
 /*
@@ -179,6 +127,27 @@ func (self *Canvas) OnMouseMove(x MOUSE_MOVE) {
 	self.mouseMove = x
 }
 
+func (self *Canvas) OnWindowResize(x WINDOW_RESIZE) {
+	//	Seta a função que será chamada quando a janela for redimensionada
+	self.windowResize = x
+}
+
+func (self *Canvas) EnableCursor() {
+	/*
+		Mostra o cursor do mouse
+	*/
+	self.cursor = true
+	self.enableDisableCursor()
+}
+
+func (self *Canvas) DisableCursor() {
+	/*
+		Esconde o cursor do mouse
+	*/
+	self.cursor = false
+	self.enableDisableCursor()
+}
+
 /*
 	Outras funções
 */
@@ -186,10 +155,6 @@ func (self *Canvas) OnMouseMove(x MOUSE_MOVE) {
 func (self Canvas) ApplicationExit() {
 	// Fecha o programa
 	self.Window.SetShouldClose(true)
-}
-
-func (self *Canvas) RemoveLoop(b bool) {
-	self.removeLoop = b
 }
 
 func (self *Canvas) Show() {
@@ -202,19 +167,16 @@ func (self *Canvas) Show() {
 		panic(err)
 	}
 
+	self.glfwInit = true
+
 	glfw.WindowHint(glfw.Samples, 4)
 
 	if !self.resizable {
 		glfw.WindowHint(glfw.Resizable, glfw.False)
 	}
 
-	/* Deixa em modo FullScreen */
-	if self.fullScreen {
-		self.setFullScreenMode()
-	}
-
 	/* Cria a janela */
-	window, err := glfw.CreateWindow(self.Width, self.Height, self.title, nil, nil)
+	window, err := self.newWindow()
 	if err != nil {
 		panic(err)
 	}
@@ -229,6 +191,8 @@ func (self *Canvas) Show() {
 	if err := gl.Init(); err != nil {
 		panic(err)
 	}
+
+	self.glInit = true
 
 	if self.loadResources != nil {
 		self.loadResources()
@@ -288,17 +252,15 @@ func (self *Canvas) Show() {
 	if self.loopFunc != nil {
 		self.set2d()
 
-		if !self.removeLoop {
-			for !self.Window.ShouldClose() {
-				gl.Clear(gl.COLOR_BUFFER_BIT)
+		for !self.Window.ShouldClose() {
+			gl.Clear(gl.COLOR_BUFFER_BIT)
 
-				self.loopFunc()
+			self.loopFunc()
 
-				gl.Flush()
+			gl.Flush()
 
-				self.Window.SwapBuffers()
-				glfw.PollEvents()
-			}
+			self.Window.SwapBuffers()
+			glfw.PollEvents()
 		}
 	}
 }
@@ -321,21 +283,40 @@ func (self Canvas) set2d() {
 	gl.LoadIdentity()
 }
 
-func (self *Canvas) sizeCallback(_window *glfw.Window, w int, h int) {
+func (self *Canvas) sizeCallback(_window *glfw.Window, w, h int) {
 	/*
 		Quando a janela for redimensionada, altera também a projeção da janela
 	*/
 	self.Width = w
 	self.Height = h
 	self.set2d()
+
+	if self.windowResize != nil {
+		self.windowResize(w, h)
+	}
 }
 
-func (self *Canvas) setFullScreenMode() {
+func (self *Canvas) newWindow() (*glfw.Window, error) {
 	/*
 		Faz com que a janela entre em fullscreen
 	*/
-	monitor := glfw.GetPrimaryMonitor().GetVideoMode()
-	self.Width = monitor.Width
-	self.Height = monitor.Height
-	glfw.WindowHint(glfw.Decorated, glfw.False)
+	if self.fullScreen {
+		monitor := glfw.GetPrimaryMonitor().GetVideoMode()
+		self.Width = monitor.Width
+		self.Height = monitor.Height
+
+		return glfw.CreateWindow(self.Width, self.Height, self.title, glfw.GetPrimaryMonitor(), nil)
+	} else {
+		return glfw.CreateWindow(self.Width, self.Height, self.title, nil, nil)
+	}
+}
+
+func (self *Canvas) enableDisableCursor() {
+	if self.glfwInit {
+		cursor := glfw.CursorNormal
+		if !self.cursor {
+			cursor = glfw.CursorHidden
+		}
+		self.Window.SetInputMode(glfw.CursorMode, cursor)
+	}
 }

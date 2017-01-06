@@ -7,6 +7,7 @@ import _ "image/png"
 import _ "image/jpeg"
 
 type Image struct {
+	data      *image.NRGBA
 	width     int32
 	height    int32
 	imgNumber uint32
@@ -25,7 +26,7 @@ func (self *Image) SetImgNumber(number uint32) {
 	self.imgNumber = number
 }
 
-func loadImage(filepath string) (Image, *image.NRGBA) {
+func loadImage(filepath string) *Image {
 	file, err := os.Open(filepath)
 	if err != nil {
 		panic("(Load Image) Image not found")
@@ -39,7 +40,7 @@ func loadImage(filepath string) (Image, *image.NRGBA) {
 	nrgba := image.NewNRGBA(imagem.Bounds())
 	draw.Draw(nrgba, nrgba.Bounds(), imagem, image.Point{0, 0}, draw.Src)
 
-	return Image{width: int32(nrgba.Rect.Size().X), height: int32(nrgba.Rect.Size().Y)}, nrgba
+	return &Image{data: nrgba, width: int32(nrgba.Rect.Size().X), height: int32(nrgba.Rect.Size().Y)}
 }
 
 func loadIcon(filepath string) []image.Image {
