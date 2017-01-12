@@ -24,10 +24,17 @@ func loadResources() {
 
 func Loop() {
 	/*
+		image size 234 x 206
+					w     h
 		args
-			image = lisa
-			pos x = 183
-			pos y = 97
+					image  = lisa
+					pos x  = 0
+					pos y  = 0
+
+		(optional)	coord x1 = 0.444444 (104 / 234)
+		(optional)	coord y1 = 0.048543 (10  / 206)
+		(optional)	coord x2 = 1        (234 / 234)
+		(optional)	coord y2 = 0.621359 (128 / 206)
 	*/
-	context.DrawImage(lisa, 183, 97)
+	context.DrawImage(lisa, 183, 97, 0.444444, 0.048543, 1, 0.621359)
 }

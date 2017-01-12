@@ -15,6 +15,7 @@ type FlappyBirdGo struct {
 
 	pontos         int32
 	imagens        map[string]*canvas2d.Image
+	sons           map[string]*canvas2d.Audio
 	fonte          *canvas2d.Font
 	fontemenor     *canvas2d.Font
 	obstaculos     []Obstaculo
@@ -29,6 +30,7 @@ type FlappyBirdGo struct {
 	countAnim    int32
 	rotacao      float32
 	caindo       bool
+	bateunochao  bool
 
 	gameOver  bool
 	gameStart bool
@@ -48,6 +50,9 @@ func (self *FlappyBirdGo) init() {
 	self.imagens = map[string]*canvas2d.Image{}
 	self.CarregarImagens()
 
+	self.sons = map[string]*canvas2d.Audio{}
+	self.CarregarSons()
+
 	self.ResetaPropriedades()
 }
 
@@ -61,6 +66,7 @@ func (self *FlappyBirdGo) ResetaPropriedades() {
 	self.myposY = 100
 	self.obsinterval = 100
 	self.pulotempo = 20
+	self.bateunochao = false
 
 	self.rotacao = 0
 	self.pontos = 0
@@ -83,6 +89,15 @@ func (self *FlappyBirdGo) CarregarImagens() {
 	for img := range imgs {
 		i := imgs[img]
 		self.imagens[i] = canvas2d.LoadImage(fmt.Sprintf("./data/%s.png", i))
+	}
+}
+
+func (self *FlappyBirdGo) CarregarSons() {
+	sons := []string{"hit", "die", "point", "wing"}
+
+	for s := range sons {
+		som := sons[s]
+		self.sons[som] = canvas2d.NewAudio(fmt.Sprintf("./sound/%s.wav", som))
 	}
 }
 
@@ -112,7 +127,7 @@ func (self *FlappyBirdGo) Gravidade() {
 		}
 
 		if self.rotacao > -20 {
-			self.rotacao -= 8
+			self.rotacao -= 6
 		}
 
 		self.pulocount++
@@ -122,7 +137,7 @@ func (self *FlappyBirdGo) Gravidade() {
 		}
 
 	} else {
-		self.myposY += 25 * delta
+		self.myposY += 27 * delta
 
 		if self.rotacao < 80 {
 			self.rotacao += 5
@@ -135,9 +150,15 @@ func (self *FlappyBirdGo) Gravidade() {
 		}
 
 		if self.myposY+30 >= float32(self.canvas.Height)-70 {
-			self.passaroAtual = "passaro4"
-			self.gameOver = true
 			self.myposY = (float32(self.canvas.Height) - 70) - 30
+			if !self.bateunochao {
+				if !self.gameOver {
+					self.sons["hit"].Play()
+				}
+				self.passaroAtual = "passaro4"
+				self.gameOver = true
+				self.bateunochao = true
+			}
 		}
 	}
 }
@@ -275,10 +296,13 @@ func (self *FlappyBirdGo) ChecaGameOver() {
 				// Colidiu cima ou baixo
 				self.gameOver = true
 				self.passaroAtual = "passaro4"
+				self.sons["hit"].Play()
+				self.sons["die"].Play()
 			}
 		} else if self.myposX > obs.x+70 && !obs.contouponto {
 			self.pontos++
 			self.obstaculos[o].contouponto = true
+			self.sons["point"].Play()
 		}
 	}
 }
@@ -328,9 +352,10 @@ func (self *FlappyBirdGo) SetPulando() {
 		reseta o pulo
 	*/
 	if !self.gameOver {
-		self.myposY -= 1
+		self.myposY -= 1.5
 		self.pulocount = 0
 		self.pulando = true
 		self.caindo = false
+		self.sons["wing"].Play()
 	}
 }

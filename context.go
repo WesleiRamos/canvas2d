@@ -181,27 +181,43 @@ func (self fill) Text(text string, x, y float32) {
 
 /* Desenha a imagem (na verdade é uma textura) */
 func (self *Context) DrawImage(imagem *Image, p ...float32) {
-	if len(p) == 2 || len(p) == 4 {
+	if (len(p) > 0) && (len(p)%2 == 0) && (len(p) <= 8) {
 
 		gl.Color3f(1.0, 1.0, 1.0)
 		gl.BindTexture(gl.TEXTURE_2D, imagem.imgNumber)
 
 		x, y := p[0], p[1]
 		w, h := float32(imagem.width), float32(imagem.height)
-		if len(p) == 4 {
+
+		var x1, x2, y1, y2 float32 = 0, 1, 0, 1
+
+		switch len(p) {
+		case 4:
 			w = p[2]
 			h = p[3]
+		case 8:
+			w = p[2]
+			h = p[3]
+			x1 = p[4]
+			x2 = p[6]
+			y1 = p[5]
+			y2 = p[7]
+		case 6:
+			x1 = p[2]
+			x2 = p[4]
+			y1 = p[3]
+			y2 = p[5]
 		}
 
 		gl.Begin(gl.QUADS)
 		{
-			gl.TexCoord2i(0, 0)
+			gl.TexCoord2f(x1, y1)
 			gl.Vertex2f(x, y)
-			gl.TexCoord2i(1, 0)
+			gl.TexCoord2f(x2, y1)
 			gl.Vertex2f(x+w, y)
-			gl.TexCoord2i(1, 1)
+			gl.TexCoord2f(x2, y2)
 			gl.Vertex2f(x+w, y+h)
-			gl.TexCoord2i(0, 1)
+			gl.TexCoord2f(x1, y2)
 			gl.Vertex2f(x, y+h)
 		}
 		gl.End()
