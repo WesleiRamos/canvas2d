@@ -6,7 +6,7 @@ import "math"
 type Cell struct {
 	x, y, r float32
 	anim    int
-	color   canvas2d.Color
+	color   *canvas2d.Color
 }
 
 type AgarGo struct {
